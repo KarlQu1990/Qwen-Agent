@@ -26,17 +26,22 @@ In order to complete the above writing tasks, please provide an outline first. T
 """
 
 PROMPT_TEMPLATE = {
-    'zh': PROMPT_TEMPLATE_ZH,
-    'en': PROMPT_TEMPLATE_EN,
+    "zh": PROMPT_TEMPLATE_ZH,
+    "en": PROMPT_TEMPLATE_EN,
 }
 
 
 class OutlineWriting(Agent):
 
-    def _run(self, messages: List[Message], knowledge: str = '', lang: str = 'en', **kwargs) -> Iterator[List[Message]]:
+    def _run(self, messages: List[Message], knowledge: str = "", lang: str = "en", **kwargs) -> Iterator[List[Message]]:
         messages = copy.deepcopy(messages)
+
+        user_request = messages[-1][CONTENT]
+        if isinstance(messages[-1][CONTENT], list):
+            user_request = messages[-1][CONTENT][0].text
+
         messages[-1][CONTENT] = PROMPT_TEMPLATE[lang].format(
             ref_doc=knowledge,
-            user_request=messages[-1][CONTENT],
+            user_request=user_request,
         )
         return self._call_llm(messages)

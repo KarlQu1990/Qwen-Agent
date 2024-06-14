@@ -9,9 +9,9 @@
         "fast_api_port": 7866,
         "app_in_browser_port": 7863,
         "workstation_port": 7864,
-        "model_server": "dashscope",
-        "api_key": "",
-        "llm": "qwen-plus",
+        "model_server": "http://192.168.201.86:9998/v1",
+        "api_key": "EMPTY",
+        "llm": "qwen2-instruct",
         "max_ref_token": 4000,
         "max_days": 7
     }

@@ -12,31 +12,30 @@ default_plan = """{"action1": "summarize", "action2": "outline", "action3": "exp
 
 
 def is_roman_numeral(s):
-    pattern = r'^(I|V|X|L|C|D|M)+'
+    pattern = r"^(I|V|X|L|C|D|M)+"
     match = re.match(pattern, s)
     return match is not None
 
 
 class WriteFromScratch(Agent):
 
-    def _run(self, messages: List[Message], knowledge: str = '', lang: str = 'en') -> Iterator[List[Message]]:
-
-        response = [Message(ASSISTANT, f'>\n> Use Default plans: \n{default_plan}')]
+    def _run(self, messages: List[Message], knowledge: str = "", lang: str = "en") -> Iterator[List[Message]]:
+        response = [Message(ASSISTANT, f">\n> Use Default plans: \n{default_plan}")]
         yield response
         res_plans = json5.loads(default_plan)
 
-        summ = ''
-        outline = ''
+        summ = ""
+        outline = ""
         for plan_id in sorted(res_plans.keys()):
             plan = res_plans[plan_id]
-            if plan == 'summarize':
-                response.append(Message(ASSISTANT, '>\n> Summarize Browse Content: \n'))
+            if plan == "summarize":
+                response.append(Message(ASSISTANT, ">\n> Summarize Browse Content: \n"))
                 yield response
 
-                if lang == 'zh':
-                    user_request = '总结参考资料的主要内容'
-                elif lang == 'en':
-                    user_request = 'Summarize the main content of reference materials.'
+                if lang == "zh":
+                    user_request = "总结参考资料的主要内容"
+                elif lang == "en":
+                    user_request = "Summarize the main content of reference materials."
                 else:
                     raise NotImplementedError
                 sum_agent = Assistant(llm=self.llm)
@@ -47,8 +46,8 @@ class WriteFromScratch(Agent):
                 if chunk:
                     response.extend(chunk)
                     summ = chunk[-1][CONTENT]
-            elif plan == 'outline':
-                response.append(Message(ASSISTANT, '>\n> Generate Outline: \n'))
+            elif plan == "outline":
+                response.append(Message(ASSISTANT, ">\n> Generate Outline: \n"))
                 yield response
 
                 otl_agent = OutlineWriting(llm=self.llm)
@@ -59,11 +58,11 @@ class WriteFromScratch(Agent):
                 if chunk:
                     response.extend(chunk)
                     outline = chunk[-1][CONTENT]
-            elif plan == 'expand':
-                response.append(Message(ASSISTANT, '>\n> Writing Text: \n'))
+            elif plan == "expand":
+                response.append(Message(ASSISTANT, ">\n> Writing Text: \n"))
                 yield response
 
-                outline_list_all = outline.split('\n')
+                outline_list_all = outline.split("\n")
                 outline_list = []
                 for x in outline_list_all:
                     if is_roman_numeral(x):
@@ -71,12 +70,12 @@ class WriteFromScratch(Agent):
 
                 otl_num = len(outline_list)
                 for i, v in enumerate(outline_list):
-                    response.append(Message(ASSISTANT, '>\n# '))
+                    response.append(Message(ASSISTANT, ">\n# "))
                     yield response
 
                     index = i + 1
                     capture = v.strip()
-                    capture_later = ''
+                    capture_later = ""
                     if i < otl_num - 1:
                         capture_later = outline_list[i + 1].strip()
                     exp_agent = ExpandWriting(llm=self.llm)

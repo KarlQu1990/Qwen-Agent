@@ -32,35 +32,42 @@ Note that each chapter is responsible for writing different content, so you don'
 """
 
 PROMPT_TEMPLATE = {
-    'zh': PROMPT_TEMPLATE_ZH,
-    'en': PROMPT_TEMPLATE_EN,
+    "zh": PROMPT_TEMPLATE_ZH,
+    "en": PROMPT_TEMPLATE_EN,
 }
 
 
 class ExpandWriting(Agent):
 
-    def _run(self,
-             messages: List[Message],
-             knowledge: str = '',
-             outline: str = '',
-             index: str = '1',
-             capture: str = '',
-             capture_later: str = '',
-             lang: str = 'en',
-             **kwargs) -> Iterator[List[Message]]:
+    def _run(
+        self,
+        messages: List[Message],
+        knowledge: str = "",
+        outline: str = "",
+        index: str = "1",
+        capture: str = "",
+        capture_later: str = "",
+        lang: str = "en",
+        **kwargs
+    ) -> Iterator[List[Message]]:
         messages = copy.deepcopy(messages)
+
+        user_request = messages[-1][CONTENT]
+        if isinstance(messages[-1][CONTENT], list):
+            user_request = messages[-1][CONTENT][0].text
+
         prompt = PROMPT_TEMPLATE[lang].format(
             ref_doc=knowledge,
-            user_request=messages[-1][CONTENT],
+            user_request=user_request,
             index=index,
             outline=outline,
             capture=capture,
         )
         if capture_later:
-            if lang == 'zh':
-                prompt = prompt + '请在涉及 ' + capture_later + ' 时停止。'
-            elif lang == 'en':
-                prompt = prompt + ' Please stop when writing ' + capture_later
+            if lang == "zh":
+                prompt = prompt + "请在涉及 " + capture_later + " 时停止。"
+            elif lang == "en":
+                prompt = prompt + " Please stop when writing " + capture_later
             else:
                 raise NotImplementedError
 
