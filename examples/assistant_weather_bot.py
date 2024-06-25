@@ -7,7 +7,7 @@ from qwen_agent.agents import Assistant
 from qwen_agent.gui import WebUI
 
 ROOT_RESOURCE = os.path.join(os.path.dirname(__file__), "resource")
-os.environ["AMAP_TOKEN"] = "196d49e5341cd280a027333f4113cebe"
+os.environ["AMAP_TOKEN"] = ""  # your key
 
 
 def init_agent_service():
@@ -33,7 +33,9 @@ def init_agent_service():
     return bot
 
 
-def test(query="海淀区天气", file: Optional[str] = os.path.join(ROOT_RESOURCE, "poem.pdf")):
+def test(
+    query="海淀区天气", file: Optional[str] = os.path.join(ROOT_RESOURCE, "poem.pdf")
+):
     # Define the agent
     bot = init_agent_service()
 
@@ -66,7 +68,9 @@ def app_tui():
         if not file:
             messages.append({"role": "user", "content": query})
         else:
-            messages.append({"role": "user", "content": [{"text": query}, {"file": file}]})
+            messages.append(
+                {"role": "user", "content": [{"text": query}, {"file": file}]}
+            )
 
         response = []
         for response in bot.run(messages):

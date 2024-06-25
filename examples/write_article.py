@@ -3,7 +3,7 @@ from qwen_agent.gui import WebUI
 
 
 def app_gui():
-    generate_cfg = {"max_tokens": 20000}
+    generate_cfg = {"max_tokens": 20000, "max_input_tokens": 20000}
     llm_cfg = {
         "host_base_url": "http://192.168.201.86:9221/v2.1/models",
         "model": "Qwen2-7B-Instruct",

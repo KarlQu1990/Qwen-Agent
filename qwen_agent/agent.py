@@ -19,13 +19,15 @@ class Agent(ABC):
     Different agents have distinct workflows for processing messages and generating responses in the `_run` method.
     """
 
-    def __init__(self,
-                 function_list: Optional[List[Union[str, Dict, BaseTool]]] = None,
-                 llm: Optional[Union[Dict, BaseChatModel]] = None,
-                 system_message: Optional[str] = DEFAULT_SYSTEM_MESSAGE,
-                 name: Optional[str] = None,
-                 description: Optional[str] = None,
-                 **kwargs):
+    def __init__(
+        self,
+        function_list: Optional[List[Union[str, Dict, BaseTool]]] = None,
+        llm: Optional[Union[Dict, BaseChatModel]] = None,
+        system_message: Optional[str] = DEFAULT_SYSTEM_MESSAGE,
+        name: Optional[str] = None,
+        description: Optional[str] = None,
+        **kwargs,
+    ):
         """Initialization the agent.
 
         Args:
@@ -52,8 +54,9 @@ class Agent(ABC):
         self.name = name
         self.description = description
 
-    def run(self, messages: List[Union[Dict, Message]],
-            **kwargs) -> Union[Iterator[List[Message]], Iterator[List[Dict]]]:
+    def run(
+        self, messages: List[Union[Dict, Message]], **kwargs
+    ) -> Union[Iterator[List[Message]], Iterator[List[Dict]]]:
         """Return one response generator based on the received messages.
 
         This method performs a uniform type conversion for the inputted messages,
@@ -66,35 +69,35 @@ class Agent(ABC):
             The response generator.
         """
         messages = copy.deepcopy(messages)
-        _return_message_type = 'dict'
+        _return_message_type = "dict"
         new_messages = []
         # Only return dict when all input messages are dict
         if not messages:
-            _return_message_type = 'message'
+            _return_message_type = "message"
         for msg in messages:
             if isinstance(msg, dict):
                 new_messages.append(Message(**msg))
             else:
                 new_messages.append(msg)
-                _return_message_type = 'message'
+                _return_message_type = "message"
 
-        if 'lang' not in kwargs:
+        if "lang" not in kwargs:
             if has_chinese_messages(new_messages):
-                kwargs['lang'] = 'zh'
+                kwargs["lang"] = "zh"
             else:
-                kwargs['lang'] = 'en'
+                kwargs["lang"] = "en"
 
         for rsp in self._run(messages=new_messages, **kwargs):
             for i in range(len(rsp)):
                 if not rsp[i].name and self.name:
                     rsp[i].name = self.name
-            if _return_message_type == 'message':
+            if _return_message_type == "message":
                 yield [Message(**x) if isinstance(x, dict) else x for x in rsp]
             else:
                 yield [x.model_dump() if not isinstance(x, dict) else x for x in rsp]
 
     @abstractmethod
-    def _run(self, messages: List[Message], lang: str = 'en', **kwargs) -> Iterator[List[Message]]:
+    def _run(self, messages: List[Message], lang: str = "en", **kwargs) -> Iterator[List[Message]]:
         """Return one response generator based on the received messages.
 
         The workflow for an agent to generate a reply.
@@ -134,19 +137,21 @@ class Agent(ABC):
         if messages[0][ROLE] != SYSTEM:
             messages.insert(0, Message(role=SYSTEM, content=self.system_message))
         elif isinstance(messages[0][CONTENT], str):
-            messages[0][CONTENT] = self.system_message + '\n\n' + messages[0][CONTENT]
+            messages[0][CONTENT] = self.system_message + "\n\n" + messages[0][CONTENT]
         else:
             assert isinstance(messages[0][CONTENT], list)
-            messages[0][CONTENT] = [ContentItem(text=self.system_message + '\n\n')] + messages[0][CONTENT]
-        return self.llm.chat(messages=messages,
-                             functions=functions,
-                             stream=stream,
-                             extra_generate_cfg=merge_generate_cfgs(
-                                 base_generate_cfg=self.extra_generate_cfg,
-                                 new_generate_cfg=extra_generate_cfg,
-                             ))
+            messages[0][CONTENT] = [ContentItem(text=self.system_message + "\n\n")] + messages[0][CONTENT]
+        return self.llm.chat(
+            messages=messages,
+            functions=functions,
+            stream=stream,
+            extra_generate_cfg=merge_generate_cfgs(
+                base_generate_cfg=self.extra_generate_cfg,
+                new_generate_cfg=extra_generate_cfg,
+            ),
+        )
 
-    def _call_tool(self, tool_name: str, tool_args: Union[str, dict] = '{}', **kwargs) -> str:
+    def _call_tool(self, tool_name: str, tool_args: Union[str, dict] = "{}", **kwargs) -> str:
         """The interface of calling tools for the agent.
 
         Args:
@@ -157,17 +162,19 @@ class Agent(ABC):
             The output of tools.
         """
         if tool_name not in self.function_map:
-            return f'Tool {tool_name} does not exists.'
+            return f"Tool {tool_name} does not exists."
         tool = self.function_map[tool_name]
         try:
             tool_result = tool.call(tool_args, **kwargs)
         except Exception as ex:
             exception_type = type(ex).__name__
             exception_message = str(ex)
-            traceback_info = ''.join(traceback.format_tb(ex.__traceback__))
-            error_message = f'An error occurred when calling tool `{tool_name}`:\n' \
-                            f'{exception_type}: {exception_message}\n' \
-                            f'Traceback:\n{traceback_info}'
+            traceback_info = "".join(traceback.format_tb(ex.__traceback__))
+            error_message = (
+                f"An error occurred when calling tool `{tool_name}`:\n"
+                f"{exception_type}: {exception_message}\n"
+                f"Traceback:\n{traceback_info}"
+            )
             logger.warning(error_message)
             return error_message
 
@@ -180,20 +187,20 @@ class Agent(ABC):
         if isinstance(tool, BaseTool):
             tool_name = tool.name
             if tool_name in self.function_map:
-                logger.warning(f'Repeatedly adding tool {tool_name}, will use the newest tool in function list')
+                logger.warning(f"Repeatedly adding tool {tool_name}, will use the newest tool in function list")
             self.function_map[tool_name] = tool
         else:
             if isinstance(tool, dict):
-                tool_name = tool['name']
+                tool_name = tool["name"]
                 tool_cfg = tool
             else:
                 tool_name = tool
                 tool_cfg = None
             if tool_name not in TOOL_REGISTRY:
-                raise ValueError(f'Tool {tool_name} is not registered.')
+                raise ValueError(f"Tool {tool_name} is not registered.")
 
             if tool_name in self.function_map:
-                logger.warning(f'Repeatedly adding tool {tool_name}, will use the newest tool in function list')
+                logger.warning(f"Repeatedly adding tool {tool_name}, will use the newest tool in function list")
             self.function_map[tool_name] = TOOL_REGISTRY[tool_name](tool_cfg)
 
     def _detect_tool(self, message: Message) -> Tuple[bool, str, str, str]:
@@ -214,6 +221,6 @@ class Agent(ABC):
             func_args = func_call.arguments
         text = message.content
         if not text:
-            text = ''
+            text = ""
 
         return (func_name is not None), func_name, func_args, text

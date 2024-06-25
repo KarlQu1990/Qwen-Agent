@@ -65,8 +65,6 @@ class BishengHostLLM(BaseTextChatModel):
         params.update(self.generate_cfg)
         params.update(kwargs)
 
-        print("######## params:", params)
-
         response = requests.post(url=self.host_base_url, json=params, stream=True)
         if response.status_code != 200:
             raise ValueError(f"Error: {response.status_code} content: {response.text}")

@@ -12,23 +12,31 @@ from qwen_agent.utils.tokenization_qwen import count_tokens, tokenizer
 
 class RefMaterialOutput(BaseModel):
     """The knowledge data format output from the retrieval"""
+
     url: str
     text: list
 
     def to_dict(self) -> dict:
         return {
-            'url': self.url,
-            'text': self.text,
+            "url": self.url,
+            "text": self.text,
         }
 
 
 class BaseSearch(BaseTool):
-    description = '从给定文档中检索和问题相关的部分'
-    parameters = [{'name': 'query', 'type': 'string', 'description': '问题，需要从文档中检索和这个问题有关的内容', 'required': True}]
+    description = "从给定文档中检索和问题相关的部分"
+    parameters = [
+        {
+            "name": "query",
+            "type": "string",
+            "description": "问题，需要从文档中检索和这个问题有关的内容",
+            "required": True,
+        }
+    ]
 
     def __init__(self, cfg: Optional[Dict] = None):
         super().__init__(cfg)
-        self.max_ref_token: int = self.cfg.get('max_ref_token', DEFAULT_MAX_REF_TOKEN)
+        self.max_ref_token: int = self.cfg.get("max_ref_token", DEFAULT_MAX_REF_TOKEN)
 
     def call(self, params: Union[str, dict], docs: List[Union[Record, str, List[str]]] = None, **kwargs) -> list:
         """The basic search algorithm
@@ -43,19 +51,20 @@ class BaseSearch(BaseTool):
         """
         params = self._verify_json_format_args(params)
         # Compatible with the parameter passing of the qwen-agent version <= 0.0.3
-        max_ref_token = kwargs.get('max_ref_token', self.max_ref_token)
+        max_ref_token = kwargs.get("max_ref_token", self.max_ref_token)
 
         # The query is a string that may contain only the original question,
         # or it may be a json string containing the generated keywords and the original question
-        query = params['query']
+        query = params["query"]
+
         if not docs or not query:
             return []
 
         new_docs, all_tokens = self.format_docs(docs)
-        logger.info(f'all tokens: {all_tokens}')
+        logger.info(f"all tokens: {all_tokens}")
         if all_tokens <= max_ref_token:
             # Todo: Whether to use full window
-            logger.info('use full ref')
+            logger.info("use full ref")
             return [
                 RefMaterialOutput(url=doc.url, text=[page.content for page in doc.raw]).to_dict() for doc in new_docs
             ]
@@ -80,17 +89,19 @@ class BaseSearch(BaseTool):
         """
         raise NotImplementedError
 
-    def get_topk(self,
-                 chunk_and_score: List[Tuple[str, int, float]],
-                 docs: List[Record],
-                 max_ref_token: int = DEFAULT_MAX_REF_TOKEN) -> list:
+    def get_topk(
+        self,
+        chunk_and_score: List[Tuple[str, int, float]],
+        docs: List[Record],
+        max_ref_token: int = DEFAULT_MAX_REF_TOKEN,
+    ) -> list:
         available_token = max_ref_token
 
         docs_retrieved = {}  # [{'url': 'doc id', 'text': ['', '', ...]}]
         docs_map = {}
         for doc in docs:
             docs_map[doc.url] = doc
-            docs_retrieved[doc.url] = RefMaterialOutput(url=doc.url, text=[''] * len(doc.raw))
+            docs_retrieved[doc.url] = RefMaterialOutput(url=doc.url, text=[""] * len(doc.raw))
 
         for doc_id, chunk_id, _ in chunk_and_score:
             if available_token <= 0:
@@ -114,14 +125,14 @@ class BaseSearch(BaseTool):
 
     def format_docs(self, docs: List[Union[Record, str, List[str]]]):
 
-        def format_input_doc(doc: List[str], url: str = '') -> Record:
+        def format_input_doc(doc: List[str], url: str = "") -> Record:
             new_doc = []
             parser = DocParser()
             for i, x in enumerate(doc):
-                page = {'page_num': i, 'content': [{'text': x, 'token': count_tokens(x)}]}
+                page = {"page_num": i, "content": [{"text": x, "token": count_tokens(x)}]}
                 new_doc.append(page)
             content = parser.split_doc_to_chunk(new_doc, path=url)
-            return Record(url=url, raw=content, title='')
+            return Record(url=url, raw=content, title="")
 
         new_docs = []
         all_tokens = 0
@@ -129,7 +140,7 @@ class BaseSearch(BaseTool):
             if isinstance(doc, str):
                 doc = [doc]  # Doc with one page
             if isinstance(doc, list):
-                doc = format_input_doc(doc, f'doc_{str(i)}')
+                doc = format_input_doc(doc, f"doc_{str(i)}")
 
             if isinstance(doc, Record):
                 new_docs.append(doc)
