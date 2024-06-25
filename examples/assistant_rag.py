@@ -9,7 +9,15 @@ def test():
         "model_type": "bisheng",
     }
     bot = Assistant(llm=llm_cfg)
-    messages = [{"role": "user", "content": [{"text": "介绍图一"}, {"file": "https://arxiv.org/pdf/1706.03762.pdf"}]}]
+    messages = [
+        {
+            "role": "user",
+            "content": [
+                {"text": "介绍图一"},
+                {"file": "https://arxiv.org/pdf/1706.03762.pdf"},
+            ],
+        }
+    ]
     for rsp in bot.run(messages):
         print(rsp)
 
